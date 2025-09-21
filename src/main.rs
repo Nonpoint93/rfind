@@ -22,7 +22,7 @@ fn main() {
 fn read_all(args: &args::Args, path: &PathBuf) -> Result<(), std::io::Error> {
 
     let types: HashSet<args::FileType> = args.types.clone().into_iter().collect();
-    //let perm: Option<String> = args.perm.clone();
+    
     let verbose: bool = args.verbose;
 
     let entries: fs::ReadDir = match fs::read_dir(&path) {
@@ -50,11 +50,6 @@ fn read_all(args: &args::Args, path: &PathBuf) -> Result<(), std::io::Error> {
         let entry_path: PathBuf = entry.path();        
         let file_type: fs::FileType = entry.file_type()?;
 
-        //let mode: u32 = entry.metadata()?.permissions().mode();
-        
-        //let matches_perm: bool = args.matches_perm(&perm, mode);
-        //let matches_name: bool = args.matches_name(&entry_path);
-        
         if file_type.is_dir() {
             if types.contains(&FileType::Dir) && args.matches_all(&entry) {
                 println!("{}", entry_path.display());

@@ -1,109 +1,95 @@
-# 📁 rfind: A Fast, Modern `find` in Rust
+# 📁 rfind: A Robust, Auditable `find` in Rust
 
 ## 📚 Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
+- [Installation](#installation)
 - [Usage](#usage)
 - [Examples](#examples)
+- [Why Rust?](#why-rust)
 
 ---
 
 ## 🧭 Overview
 
-**rfind** is a high-performance command-line tool for locating files and directories on your system. Built from the ground up in Rust, it leverages the language's strengths—speed, memory safety, and concurrency—to outperform traditional alternatives.
+**rfind** is a modern alternative to the classic Unix `find`, written entirely in Rust. It’s designed for developers, sysadmins, and security professionals who need precise, scriptable, and auditable file discovery.
 
-By using low-level APIs and concurrent processing, rfind avoids the overhead of external binaries and fully utilizes modern multi-core processors to traverse your filesystem with exceptional speed.
+Unlike traditional tools, `rfind` offers semantic flags for privilege auditing, ergonomic CLI design, and strong guarantees around correctness and portability.
 
-This project showcases Rust's power in building robust, native tools for real-world use cases.
+This project is part of my personal transition from Java backend development to systems programming in Rust, focusing on clarity, safety, and performance.
 
 ---
 
 ## ✨ Features
 
-- ⚡ **High-Speed Search**: Quickly locate files and directories by name.
-- 🧩 **Type Filtering**: Limit your search to specific file types (`file` or `dir`).
-- 🔐 **Permission Filtering**: Search for files matching specific permission sets.
-- 🔍 **Case-Insensitive Search**: Perform searches regardless of character case.
+- ⚡ **Fast Recursive Search** — Efficient traversal with robust error handling
+- 🧩 **Type Filtering** — Search by file type (`file`, `dir`)
+- 🔐 **Permission Matching** — Exact or masked octal permissions (`--perm 755`, `--perm /4000`)
+- 🧠 **Privilege Flags** — Detect SUID, SGID, executable-by-others, or root-owned files
+- 🔍 **Name Matching** — Glob patterns (`--name '*.sh'`) with optional case sensitivity
+- 📣 **Verbose Mode** — Show permission errors and inaccessible paths
+- 🧪 **Unit-Tested** — Core filters covered by Rust unit tests
 
 ---
 
-## 🚀 Usage
-
-A command-line tool for finding files and directories in a filesystem
+## 📦 Installation
 
 ```bash
+git clone https://github.com/tuusuario/rfind
+cd rfind
+cargo build --release
+```
 
-Usage: rfind [OPTIONS]
+Binary will be available at ./target/release/rfind.
+
+🚀 Usage
+
+rfind [OPTIONS]
 
 Options:
-  -p, --path <PATH>
-          The path to the directory to start searching from. Defaults to the current directory
-          
-          [default: .]
+  -p, --path <PATH>             Directory to start searching from [default: .]
+  -t, --types <TYPES>           Filter by type: file, dir [default: file dir]
+  -n, --name <NAME>             Glob pattern to match file/directory names
+  -c, --case-sensitive          Enable case-sensitive name matching [default: true]
+      --perm <PERM>             Filter by permissions (octal or masked with `/`)
+      --suid                    Match files with SUID bit
+      --sgid                    Match files with SGID bit
+      --exec-other              Match files executable by others
+      --owned-by-root           Match files owned by UID 0
+  -v, --verbose                 Show errors when directories can't be read
+  -h, --help                    Print help
+  -V, --version                 Print version
 
-  -t, --types <TYPES>
-          Filter the search by file type. Can be used multiple times to search for different types
+🧪 Examples
 
-          Possible values:
-          - file: Search for files
-          - dir:  Search for directories
-          
-          [default: dir file]
+🔍 Find all .sh scripts executable by others
 
-  -n, --name <NAME>
-          The name of the file or directory to search for
+rfind --name '*.sh' --exec-other
 
-  -c, --case-sensitive
-          Perform a case-sensitive search (default: true)
+🔐 Find SUID binaries owned by root
 
-      --perm <PERM>
-          Filter the search by file permissions (octal format)
+rfind --suid --owned-by-root --types file --perm /4000
 
-  -v, --verbose
-          Show error messages when directories can't be read
+📁 Find directories named config under /etc
 
-  -h, --help
-          Print help (see a summary with '-h')
+rfind --path /etc --types dir --name config
 
-  -V, --version
-          Print version
+🧾 Verbose scan of /usr for files with permission 644
 
-```
-
-## Examples
-
-```bash
-./target/debug/rfind --name output --path ./target/debug
-
-```
-
-Output:
-
-Agrs: Path: "./target/debug" Name: output Types: {Dir, File} Perm: None
-./target/debug/build/output
-./target/debug/build/output/output
-./target/debug/build/proc-macro2-c4fca423565ace57/output
-
-```bash
-./target/debug/rfind --name output --path ./target/debug
-
-```
-
-Output:
-
-Agrs: Path: "./target/debug" Name: output Types: {Dir, File} Perm: None
-./target/debug/build/output
-./target/debug/build/output/output
-./target/debug/build/proc-macro2-c4fca423565ace57/output
+rfind --path /usr --types file --perm 644 --verbose
 
 
-```bash
-./target/debug/rfind --name ssltransport* --path / --types file --perm 644
-```
-Output:
+🦀 Why Rust?
 
-Agrs: Path: "/" Name: ssltransport* Types: {File} Perm: Some(420) Case-Sensitive: true
-/usr/lib/python3/dist-packages/urllib3/util/ssltransport.py
-/usr/lib/python3/dist-packages/urllib3/util/__pycache__/ssltransport.cpython-312.pyc
-[ ERROR ] Failed to read directory: Os { code: 13, kind: PermissionDenied, message: "Permission denied" }
+After 9 years of backend development in Java, I wanted to build tools that are:
+
+    Safe by default — no nulls, no data races
+
+    Portable — compile once, run anywhere
+
+    Ergonomic — expressive CLI with clap, strong typing, and clear error handling
+
+    Auditable — ideal for security tooling and filesystem analysis
+
+Rust allows me to write code that is fast, correct, and maintainable — and rfind is my way of demonstrating that shift.

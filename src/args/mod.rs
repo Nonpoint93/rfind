@@ -137,6 +137,24 @@ impl Args {
     }
 }
 
+impl Default for Args {
+    fn default() -> Self {
+        Args {
+            path: ".".to_string(),
+            types: vec![FileType::File],
+            name: None,
+            case_sensitive: true,
+            perm: None,
+            verbose: false,
+            exec_other: false,
+            suid: false,
+            sgid: false,
+            owned_by_root: false,
+        }
+    }
+}
+
+
 fn parse_octal(s: &str) -> Option<u32> {
     u32::from_str_radix(s, 8).ok().filter(|v| *v <= 0o7777)
 }
@@ -155,4 +173,78 @@ pub enum FileType {
     /// Search for directories.
     #[clap(name = "dir")]
     Dir,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_matches_name_exact() {
+        let args = Args {
+            name: Some("file.txt".to_string()),
+            case_sensitive: true,
+            ..Default::default()
+        };
+        let path = PathBuf::from("file.txt");
+        assert!(args.matches_name(&path));
+    }
+
+    #[test]
+    fn test_matches_name_pattern() {
+        let args = Args {
+            name: Some("*.txt".to_string()),
+            case_sensitive: true,
+            ..Default::default()
+        };
+        let path = PathBuf::from("report.txt");
+        assert!(args.matches_name(&path));
+    }
+
+    #[test]
+    fn test_matches_perm_exact() {
+        let args = Args {
+            perm: Some("644".to_string()),
+            ..Default::default()
+        };
+        assert!(args.matches_perm(&args.perm, 0o100644));
+    }
+
+    #[test]
+    fn test_matches_perm_mask() {
+        let args = Args {
+            perm: Some("/4000".to_string()),
+            ..Default::default()
+        };
+        assert!(args.matches_perm(&args.perm, 0o4755));
+    }
+
+    #[test]
+    fn test_matches_flags_suid_only() {
+        let args = Args {
+            suid: true,
+            ..Default::default()
+        };
+        let dummy_mode = 0o4755;
+        let entry = dummy_entry_with_mode(dummy_mode);
+        assert!(args.matches_flags(dummy_mode, &entry));
+    }
+
+    fn dummy_entry_with_mode(mode: u32) -> std::fs::DirEntry {
+
+        use std::fs::{File};
+        use std::io::Write;
+        use std::os::unix::fs::PermissionsExt;
+        use std::path::Path;
+
+        let path = Path::new("/tmp/test_rfind_dummy");
+        let _ = File::create(&path).and_then(|mut f| f.write_all(b"dummy"));
+        let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode));
+        std::fs::read_dir("/tmp")
+            .unwrap()
+            .find(|e| e.as_ref().unwrap().path() == path)
+            .unwrap()
+            .unwrap()
+    }
 }
